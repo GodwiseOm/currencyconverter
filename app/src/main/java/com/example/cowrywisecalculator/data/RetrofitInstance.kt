@@ -11,7 +11,7 @@ object RetrofitInstance {
     }
 
     // api to fetch flags
-    const val flagUrl = "https://restcountries.com/v3.1/"
+    const val flagUrl = "https://restcountries.com/v3.1/currency/"
 
     val contentType = "application/json".toMediaType()
 

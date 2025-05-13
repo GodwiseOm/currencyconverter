@@ -1,10 +1,14 @@
 package com.example.cowrywisecalculator.presentation.conversion_screen
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cowrywisecalculator.data.RetrofitInstance
-import com.example.cowrywisecalculator.domain.RatesResponse
-import com.example.cowrywisecalculator.domain.model.Symbols
+import com.example.cowrywisecalculator.data.model.RatesResponse
+import com.example.cowrywisecalculator.data.model.Symbols
+import com.example.cowrywisecalculator.domain.DataError
+import com.example.cowrywisecalculator.domain.Result
+import com.example.cowrywisecalculator.domain.onSuccess
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +18,7 @@ import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
+private const val TAG = "conversionViewModel"
 
 @HiltViewModel
 class ConversionViewModel @Inject constructor() : ViewModel() {
@@ -70,22 +75,31 @@ fun setBaseAmount(amount:String){
 
     fun setBaseCurrency(currency: String) {
         _conversionScreenState.update { it.copy(baseCurrency = currency) }
+        getBaseCurrencyFlag(currency)
     }
 
     fun setConversionCurrency(currency: String) {
         _conversionScreenState.update { it.copy(conversionCurrency = currency) }
+        getConversionCurrencyFlag(currency)
     }
 
     fun getConversionCurrencyFlag(currency: String) {
         viewModelScope.launch {
+            Log.d(TAG, "getConversionCurrencyFlag: called for $currency")
             val image: String? = try {
-                RetrofitInstance.conversionApiflag.getConversionCurrencyImage(currency)
+                RetrofitInstance.conversionApiflag.getConversionCurrencyImage(currency).items[0].flags.png
+
             } catch (e: IOException) {
+                Log.d(TAG, "io exception, failed to fetch flag response was  ${e.printStackTrace()}")
                 null
             } catch (e: HttpException) {
+                Log.d(TAG, "http exception, faied to fetch flag response was  ${e.printStackTrace()}")
                 null
             } catch (e: Exception) {
+                Log.d(TAG, "failed with exception, fetching flag response was  ${e.cause}")
+                Log.d(TAG, "failed with exception, fetching flag response was  ${e.printStackTrace()}")
                 null
+
             }
             if (image?.isEmpty() == false) {
                _conversionScreenState.update { it.copy(conversionImage = image) }
@@ -96,8 +110,9 @@ fun setBaseAmount(amount:String){
     fun getBaseCurrencyFlag(currency: String) {
 
         viewModelScope.launch {
+            Log.d(TAG, "getBaseCurrencyFlag: called for [$currency] ")
             val image: String? = try {
-                RetrofitInstance.conversionApiflag.getConversionCurrencyImage(currency)
+                RetrofitInstance.conversionApiflag.getConversionCurrencyImage(currency).items[0].flags.png
             } catch (e: IOException) {
                 null
             } catch (e: HttpException) {
@@ -127,27 +142,36 @@ fun setBaseAmount(amount:String){
             }
         }
     }
-    fun convert(baseCurrency: String, conversionCurrency: String, baseAmount:String) {
+    fun convert(baseCurrency: String, conversionCurrency: String, baseAmount: String) {
         viewModelScope.launch {
-            val rates: RatesResponse? = try {
+            val response:Result<RatesResponse,DataError> =
                 RetrofitInstance.conversionApiImp.getRates(baseCurrency, conversionCurrency)
-
-            } catch (e: IOException) {
-                null
-            } catch (e: HttpException) {
-                null
-            } catch (e: Exception) {
-                e.printStackTrace()
-                null
+            response.onSuccess {
+                data ->
+                val rate = data.rates?.get(conversionCurrency)?.times(baseAmount.toDouble())
+                _conversionScreenState.update { it.copy(conversionAmount = ) }
             }
-            // get the actual conversion rate
-            rates?.rates?.let { rate ->
-                val conversionRate = rate[conversionCurrency]
-                _conversionScreenState.update { it.copy(conversionAmount = (baseAmount.toDouble() * conversionRate!!).toString()) }
-            }
+//             try {
+//
+//
+//            } catch (e: IOException) {
+//                e.printStackTrace()
+//                null
+//            } catch (e: HttpException) {
+//                e.printStackTrace()
+//                null
+//            } catch (e: Exception) {
+//                e.printStackTrace()
+//                null
+//            }
+//            // get the actual conversion rate
+//            rates?.rates?.let { rate ->
+//                val conversionRate = rate[conversionCurrency]
+//                _conversionScreenState.update { it.copy(conversionAmount = (baseAmount.toDouble() * conversionRate!!).toString()) }
+//            }
         }
 
-    }
+    }}
 
 
 }

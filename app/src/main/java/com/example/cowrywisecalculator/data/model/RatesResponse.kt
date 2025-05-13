@@ -1,7 +1,8 @@
-package com.example.cowrywisecalculator.domain
+package com.example.cowrywisecalculator.data.model
 
-import com.example.cowrywisecalculator.domain.model.Rates
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class RatesResponse(
     val base: String?,
     val date: String?,
