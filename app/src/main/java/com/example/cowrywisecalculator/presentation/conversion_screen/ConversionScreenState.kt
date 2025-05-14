@@ -1,6 +1,6 @@
 package com.example.cowrywisecalculator.presentation.conversion_screen
 
-import com.example.cowrywisecalculator.data.model.RatesResponse
+import com.example.cowrywisecalculator.domain.RatesResponse
 
 data class ConversionScreenState (
     val currencyList:Map<String,Double> = emptyMap(),
@@ -14,5 +14,6 @@ data class ConversionScreenState (
     val conversionImage:String = "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Flag_of_Europe.svg/320px-Flag_of_Europe.svg.png",
     val allCurrency: RatesResponse = RatesResponse(null,null,null,null,null),
     val baseListVisibility:Boolean = false,
-    val conversionListVisibility:Boolean = false
+    val conversionListVisibility:Boolean = false,
+    val error: String? = null
 )

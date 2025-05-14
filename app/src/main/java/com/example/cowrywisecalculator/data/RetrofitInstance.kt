@@ -16,18 +16,25 @@ object RetrofitInstance {
     val contentType = "application/json".toMediaType()
 
     // api to fetch flag
-    val conversionApiflag: ConversionApi by lazy {
+    private val conversionApiflag: ConversionApi by lazy {
         Retrofit.Builder().baseUrl(flagUrl)
             .addConverterFactory(json.asConverterFactory(contentType)).build()
             .create(ConversionApi::class.java)
     }
 
     //generic api to fetch rates
-    val conversionApiImp: ConversionApi by lazy {
-
+    private val conversionApiImp: ConversionApi by lazy {
         Retrofit.Builder().baseUrl("https://data.fixer.io/api/")
             .addConverterFactory(json.asConverterFactory(contentType)).build()
             .create(ConversionApi::class.java)
     }
 
+    // Remote data sources
+    val flagRemoteDataSource: RemoteDataSource by lazy {
+        RemoteDataSource(conversionApiflag)
+    }
+
+    val ratesRemoteDataSource: RemoteDataSource by lazy {
+        RemoteDataSource(conversionApiImp)
+    }
 }

@@ -1,24 +1,19 @@
 package com.example.cowrywisecalculator.presentation.conversion_screen
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cowrywisecalculator.data.RetrofitInstance
-import com.example.cowrywisecalculator.data.model.RatesResponse
-import com.example.cowrywisecalculator.data.model.Symbols
 import com.example.cowrywisecalculator.domain.DataError
 import com.example.cowrywisecalculator.domain.Result
-import com.example.cowrywisecalculator.domain.onSuccess
+import com.example.cowrywisecalculator.domain.RatesResponse
+import com.example.cowrywisecalculator.domain.model.Symbols
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
-import java.io.IOException
 import javax.inject.Inject
-private const val TAG = "conversionViewModel"
 
 @HiltViewModel
 class ConversionViewModel @Inject constructor() : ViewModel() {
@@ -75,103 +70,150 @@ fun setBaseAmount(amount:String){
 
     fun setBaseCurrency(currency: String) {
         _conversionScreenState.update { it.copy(baseCurrency = currency) }
-        getBaseCurrencyFlag(currency)
     }
 
     fun setConversionCurrency(currency: String) {
         _conversionScreenState.update { it.copy(conversionCurrency = currency) }
-        getConversionCurrencyFlag(currency)
     }
 
     fun getConversionCurrencyFlag(currency: String) {
         viewModelScope.launch {
-            Log.d(TAG, "getConversionCurrencyFlag: called for $currency")
-            val image: String? = try {
-                RetrofitInstance.conversionApiflag.getConversionCurrencyImage(currency).items[0].flags.png
-
-            } catch (e: IOException) {
-                Log.d(TAG, "io exception, failed to fetch flag response was  ${e.printStackTrace()}")
-                null
-            } catch (e: HttpException) {
-                Log.d(TAG, "http exception, faied to fetch flag response was  ${e.printStackTrace()}")
-                null
-            } catch (e: Exception) {
-                Log.d(TAG, "failed with exception, fetching flag response was  ${e.cause}")
-                Log.d(TAG, "failed with exception, fetching flag response was  ${e.printStackTrace()}")
-                null
-
-            }
-            if (image?.isEmpty() == false) {
-               _conversionScreenState.update { it.copy(conversionImage = image) }
+            when (val result = RetrofitInstance.flagRemoteDataSource.getConversionCurrencyImage(currency)) {
+                is Result.Success -> {
+                    result.data.items.firstOrNull()?.flags?.png?.let { imageUrl ->
+                        _conversionScreenState.update { it.copy(conversionImage = imageUrl) }
+                    }
+                }
+                is Result.Error -> {
+                    // Handle error if needed
+                }
             }
         }
     }
 
     fun getBaseCurrencyFlag(currency: String) {
-
         viewModelScope.launch {
-            Log.d(TAG, "getBaseCurrencyFlag: called for [$currency] ")
-            val image: String? = try {
-                RetrofitInstance.conversionApiflag.getConversionCurrencyImage(currency).items[0].flags.png
-            } catch (e: IOException) {
-                null
-            } catch (e: HttpException) {
-                null
-            } catch (e: Exception) {
-                null
-            }
-            if (image?.isEmpty() == false) {
-               _conversionScreenState.update { it.copy(baseImage = image) }
+            when (val result = RetrofitInstance.flagRemoteDataSource.getConversionCurrencyImage(currency)) {
+                is Result.Success -> {
+                    result.data.items.firstOrNull()?.flags?.png?.let { imageUrl ->
+                        _conversionScreenState.update { it.copy(baseImage = imageUrl) }
+                    }
+                }
+                is Result.Error -> {
+                    // Handle error if needed
+                }
             }
         }
     }
 
 
-    fun getSymbols(){
+    fun getSymbols() {
         viewModelScope.launch {
-            val symbols: Symbols? = try {
-                RetrofitInstance.conversionApiImp.getSymbols()
-            } catch (e: IOException) {
-                null
-            } catch (e: HttpException) {
-                null
-            }
-            //update uistate to reflect symbols
-            symbols?.symbols?.let { allSymbols ->
-                _conversionScreenState.update { it.copy(symbols = allSymbols.keys.toList()) }
+            when (val result = RetrofitInstance.ratesRemoteDataSource.getSymbols()) {
+                is Result.Success -> {
+                    result.data.symbols.keys.toList().let { symbols ->
+                        _conversionScreenState.update { it.copy(symbols = symbols) }
+                    }
+                }
+                is Result.Error -> {
+                    val errorMessage = when (result.error) {
+                        is DataError.Remote -> {
+                            when (result.error) {
+                                DataError.Remote.NO_INTERNET -> "No internet connection"
+                                DataError.Remote.REQUEST_TIMEOUT -> "Request timed out"
+                                DataError.Remote.SERVER -> "Server error"
+                                DataError.Remote.TOO_MANY_REQUESTS -> "Too many requests"
+                                DataError.Remote.SERIALIZATION -> "Data parsing error"
+                                DataError.Remote.UNKNOWN -> "Unknown error occurred"
+                            }
+                        }
+                        is DataError.Local -> {
+                            when (result.error) {
+                                DataError.Local.DISK_FULL -> "Storage error"
+                                DataError.Local.UNKNOWN -> "Local error occurred"
+                            }
+                        }
+                    }
+                    _conversionScreenState.update { it.copy(error = errorMessage) }
+                }
             }
         }
     }
     fun convert(baseCurrency: String, conversionCurrency: String, baseAmount: String) {
         viewModelScope.launch {
-            val response:Result<RatesResponse,DataError> =
-                RetrofitInstance.conversionApiImp.getRates(baseCurrency, conversionCurrency)
-            response.onSuccess {
-                data ->
-                val rate = data.rates?.get(conversionCurrency)?.times(baseAmount.toDouble())
-                _conversionScreenState.update { it.copy(conversionAmount = ) }
-            }
-//             try {
-//
-//
-//            } catch (e: IOException) {
-//                e.printStackTrace()
-//                null
-//            } catch (e: HttpException) {
-//                e.printStackTrace()
-//                null
-//            } catch (e: Exception) {
-//                e.printStackTrace()
-//                null
-//            }
-//            // get the actual conversion rate
-//            rates?.rates?.let { rate ->
-//                val conversionRate = rate[conversionCurrency]
-//                _conversionScreenState.update { it.copy(conversionAmount = (baseAmount.toDouble() * conversionRate!!).toString()) }
-//            }
-        }
+            try {
+                // First validate input
+                if (baseAmount.isBlank() || baseAmount.toDoubleOrNull() == null) {
+                    _conversionScreenState.update { it.copy(
+                        conversionAmount = "0.0",
+                        error = "Please enter a valid amount"
+                    )}
+                    return@launch
+                }
 
-    }}
+                // Make API call using RemoteDataSource
+                when (val result = RetrofitInstance.ratesRemoteDataSource.getRates(baseCurrency, conversionCurrency)) {
+                    is Result.Success -> {
+                        val response = result.data
+                        when {
+                            response.rates == null -> {
+                                _conversionScreenState.update { it.copy(
+                                    conversionAmount = "0.0",
+                                    error = "No rates available"
+                                )}
+                            }
+                            else -> {
+                                // Get the conversion rate
+                                val rate = response.rates[conversionCurrency]
+                                if (rate == null) {
+                                    _conversionScreenState.update { it.copy(
+                                        conversionAmount = "0.0",
+                                        error = "Rate not found for $conversionCurrency"
+                                    )}
+                                } else {
+                                    // Calculate and update conversion amount
+                                    val convertedAmount = baseAmount.toDouble() * rate
+                                    _conversionScreenState.update { it.copy(
+                                        conversionAmount = String.format("%.2f", convertedAmount),
+                                        error = null
+                                    )}
+                                }
+                            }
+                        }
+                    }
+                    is Result.Error -> {
+                        val errorMessage = when (result.error) {
+                            is DataError.Remote -> {
+                                when (result.error) {
+                                    DataError.Remote.NO_INTERNET -> "No internet connection"
+                                    DataError.Remote.REQUEST_TIMEOUT -> "Request timed out"
+                                    DataError.Remote.SERVER -> "Server error"
+                                    DataError.Remote.TOO_MANY_REQUESTS -> "Too many requests"
+                                    DataError.Remote.SERIALIZATION -> "Data parsing error"
+                                    DataError.Remote.UNKNOWN -> "Unknown error occurred"
+                                }
+                            }
+                            is DataError.Local -> {
+                                when (result.error) {
+                                    DataError.Local.DISK_FULL -> "Storage error"
+                                    DataError.Local.UNKNOWN -> "Local error occurred"
+                                }
+                            }
+                        }
+                        _conversionScreenState.update { it.copy(
+                            conversionAmount = "0.0",
+                            error = errorMessage
+                        )}
+                    }
+                }
+            } catch (e: Exception) {
+                _conversionScreenState.update { it.copy(
+                    conversionAmount = "0.0",
+                    error = "An unexpected error occurred"
+                )}
+            }
+        }
+    }
 
 
 }
