@@ -12,12 +12,7 @@ class RemoteDataSource(private val api: ConversionApi) {
     
     suspend fun getRates(baseCurrency: String, conversionCurrency: String): Result<RatesResponse, DataError> {
         return try {
-            val response = api.getRates(baseCurrency, conversionCurrency)
-            if (response.success == true) {
-                Result.Success(response)
-            } else {
-                Result.Error(DataError.Remote.SERVER)
-            }
+            api.getRates(baseCurrency, conversionCurrency)
         } catch (e: IOException) {
             Result.Error(DataError.Remote.NO_INTERNET)
         } catch (e: HttpException) {
@@ -33,12 +28,7 @@ class RemoteDataSource(private val api: ConversionApi) {
 
     suspend fun getAllRates(): Result<RatesResponse, DataError> {
         return try {
-            val response = api.getAllRates()
-            if (response.success == true) {
-                Result.Success(response)
-            } else {
-                Result.Error(DataError.Remote.SERVER)
-            }
+            api.getAllRates()
         } catch (e: IOException) {
             Result.Error(DataError.Remote.NO_INTERNET)
         } catch (e: HttpException) {
@@ -54,12 +44,7 @@ class RemoteDataSource(private val api: ConversionApi) {
 
     suspend fun getSymbols(): Result<Symbols, DataError> {
         return try {
-            val response = api.getSymbols()
-            if (response.success) {
-                Result.Success(response)
-            } else {
-                Result.Error(DataError.Remote.SERVER)
-            }
+            api.getSymbols()
         } catch (e: IOException) {
             Result.Error(DataError.Remote.NO_INTERNET)
         } catch (e: HttpException) {
@@ -75,8 +60,7 @@ class RemoteDataSource(private val api: ConversionApi) {
 
     suspend fun getConversionCurrencyImage(currency: String): Result<FlagResponse, DataError> {
         return try {
-            val response = api.getConversionCurrencyImage(currency)
-            Result.Success(response)
+            api.getConversionCurrencyImage(currency)
         } catch (e: IOException) {
             Result.Error(DataError.Remote.NO_INTERNET)
         } catch (e: HttpException) {
