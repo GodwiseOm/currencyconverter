@@ -1,9 +1,11 @@
 package com.example.cowrywisecalculator.presentation.conversion_screen
 
-import com.example.cowrywisecalculator.domain.RatesResponse
+import com.example.cowrywisecalculator.data.model.RatesResponse
+
 
 data class ConversionScreenState (
     val currencyList:Map<String,Double> = emptyMap(),
+
     val symbols:List<String> = emptyList(),
     val conversionButtonClicked:()->Unit = {},
     val baseCurrency:String = "USD",

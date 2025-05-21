@@ -82,8 +82,10 @@ fun ConversionScreenRoot(
 ) {
     val state = viewModel.conversionScreenState.collectAsStateWithLifecycle()
     ConversionScreen(
-        onBaseCurrencyChanged = { viewModel.setBaseCurrency(it) },
-        onConversionCurrencyChanged = { viewModel.setConversionCurrency(it) },
+        onBaseCurrencyChanged = { viewModel.setBaseCurrency(it)
+                                viewModel.getBaseCurrencyFlag(it)},
+        onConversionCurrencyChanged = { viewModel.setConversionCurrency(it)
+                                      viewModel.getConversionCurrencyFlag(it)},
         onBaseAmountChanged ={ viewModel.setBaseAmount(it)},
         modifier = modifier.fillMaxSize(),
         state = state.value,
@@ -109,6 +111,8 @@ fun ConversionScreen(
     onButtonClick: () -> Unit = {},
 
     ) {
+
+    val conversionError = state.error
     Column(
         modifier = modifier
             .padding(horizontal = 16.dp)
