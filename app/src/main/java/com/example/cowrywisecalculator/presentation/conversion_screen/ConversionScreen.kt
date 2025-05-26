@@ -154,6 +154,7 @@ fun ConversionScreen(
                 fontSize = 44.sp
             )
             ConversionAmountTab(
+                amount = state.baseAmount,
                 readOnly = false,
                 onValueChange = {onBaseAmountChanged(it)},
                 currency = state.baseCurrency,
@@ -162,7 +163,7 @@ fun ConversionScreen(
             )
             ConversionAmountTab(
                 readOnly = true,
-
+amount = state.conversionAmount,
                 currency = state.conversionCurrency,
                 modifier = Modifier.padding(bottom = 40.dp)
             )
@@ -233,10 +234,11 @@ fun ConversionAmountTab(
     readOnly: Boolean,
     modifier: Modifier = Modifier,
 onValueChange: (String) -> Unit = {},
-    currency: String = "Usd"
+    currency: String = "Usd",
+    amount: String = ""
 
 ) {
-    var amount by rememberSaveable { mutableStateOf("") }
+
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -249,12 +251,12 @@ onValueChange: (String) -> Unit = {},
         ) {
 
             TextField(
-                placeholder = { Text("0.00") },
+                placeholder = { Text(text="0.0",color = MaterialTheme.colorScheme.outline) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done
                 ),
                 value = amount,
                 readOnly = readOnly,
-                onValueChange = { amount = it
+                onValueChange = {
                                  onValueChange(it)},
                 modifier = Modifier.background(color = Color.Transparent),
                 colors = TextFieldDefaults.colors(

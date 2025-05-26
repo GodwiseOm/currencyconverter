@@ -3,6 +3,7 @@ package com.example.cowrywisecalculator.presentation.conversion_screen
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.cowrywisecalculator.common.Default_Base_Currency
 import com.example.cowrywisecalculator.data.RetrofitInstance
 import com.example.cowrywisecalculator.domain.DataError
 import com.example.cowrywisecalculator.domain.Result
@@ -108,140 +109,180 @@ class ConversionViewModel @Inject constructor() : ViewModel() {
 
     fun getSymbols() {
         viewModelScope.launch {
-            try{
-            RetrofitInstance.ratesRemoteDataSource.getSymbols().onSuccess { data ->
-                data.symbols.keys.toList().let { symbols ->
-                    _conversionScreenState.update { it.copy(symbols = symbols, error = null) }
-                }
-            }.onError { err ->
-
-                val errorMessage = when (err) {
-                    is DataError.Remote -> {
-                        when (err) {
-                            DataError.Remote.NO_INTERNET -> "No internet connection"
-                            DataError.Remote.REQUEST_TIMEOUT -> "Request timed out"
-                            DataError.Remote.SERVER -> "Server error"
-                            DataError.Remote.TOO_MANY_REQUESTS -> "Too many requests"
-                            DataError.Remote.SERIALIZATION -> "Data parsing error"
-                            DataError.Remote.UNKNOWN -> "Unknown error occurred"
-                        }
-                    }
-
-                    is DataError.Local -> {
-                        when (err) {
-                            DataError.Local.DISK_FULL -> "Storage error"
-                            DataError.Local.UNKNOWN -> "Local error occurred"
-                        }
-                    }
-                }
-                _conversionScreenState.update { it.copy(error = errorMessage) }
-            }
-        }
-        catch (e: CancellationException) {
-            Log.d("ConversionViewModel", " a cancellation exception occured . getSymbols: ${e.message}")
-        }
-            catch (e: Exception) {
-                Log.d("ConversionViewModel", " an exception occured . getSymbols: ${e.message}")
-            }
-    }}
-
-
-    fun convert(baseCurrency: String, conversionCurrency: String, baseAmount: String) {
-        viewModelScope.launch {
             try {
-                // First validate input
-                if (baseAmount.isBlank()) {
-                    _conversionScreenState.update {
-                        it.copy(
-
-                            error = "Please enter a valid amount"
-                        )
+                RetrofitInstance.ratesRemoteDataSource.getSymbols().onSuccess { data ->
+                    data.symbols.keys.toList().let { symbols ->
+                        _conversionScreenState.update { it.copy(symbols = symbols, error = null) }
                     }
-                    return@launch
+                }.onError { err ->
+
+                    val errorMessage = when (err) {
+                        is DataError.Remote -> {
+                            when (err) {
+                                DataError.Remote.NO_INTERNET -> "No internet connection"
+                                DataError.Remote.REQUEST_TIMEOUT -> "Request timed out"
+                                DataError.Remote.SERVER -> "Server error"
+                                DataError.Remote.TOO_MANY_REQUESTS -> "Too many requests"
+                                DataError.Remote.SERIALIZATION -> "Data parsing error"
+                                DataError.Remote.UNKNOWN -> "Unknown error occurred"
+                            }
+                        }
+
+                        is DataError.Local -> {
+                            when (err) {
+                                DataError.Local.DISK_FULL -> "Storage error"
+                                DataError.Local.UNKNOWN -> "Local error occurred"
+                            }
+                        }
+                    }
+                    _conversionScreenState.update { it.copy(error = errorMessage) }
                 }
-
-                // Make API call using RemoteDataSource
-                when (val result = RetrofitInstance.ratesRemoteDataSource.getRates(
-                    baseCurrency,
-                    conversionCurrency
-                )) {
-                    is Result.Success -> {
-                        val response = result.data
-                        when {
-                            response.rates == null -> {
-                                _conversionScreenState.update {
-                                    it.copy(
-                                        conversionAmount = "0.0",
-                                        error = "No rates available"
-                                    )
-                                }
-                            }
-
-                            else -> {
-                                // Get the conversion rate
-                                val rate = response.rates[conversionCurrency]
-                                if (rate == null) {
-                                    _conversionScreenState.update {
-                                        it.copy(
-                                            conversionAmount = "0.0",
-                                            error = "Rate not found for $conversionCurrency"
-                                        )
-                                    }
-                                } else {
-                                    // Calculate and update conversion amount
-                                    val convertedAmount = baseAmount.toDouble() * rate
-                                    _conversionScreenState.update {
-                                        it.copy(
-                                            conversionAmount = String.format(
-                                                "%.2f",
-                                                convertedAmount
-                                            ),
-                                            error = null
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    is Result.Error -> {
-                        val errorMessage = when (result.error) {
-                            is DataError.Remote -> {
-                                when (result.error) {
-                                    DataError.Remote.NO_INTERNET -> "No internet connection"
-                                    DataError.Remote.REQUEST_TIMEOUT -> "Request timed out"
-                                    DataError.Remote.SERVER -> "Server error"
-                                    DataError.Remote.TOO_MANY_REQUESTS -> "Too many requests"
-                                    DataError.Remote.SERIALIZATION -> "Data parsing error"
-                                    DataError.Remote.UNKNOWN -> "Unknown error occurred"
-                                }
-                            }
-
-                            is DataError.Local -> {
-                                when (result.error) {
-                                    DataError.Local.DISK_FULL -> "Storage error"
-                                    DataError.Local.UNKNOWN -> "Local error occurred"
-                                }
-                            }
-                        }
-                        _conversionScreenState.update {
-                            it.copy(
-                                conversionAmount = "0.0",
-                                error = errorMessage
-                            )
-                        }
-                    }
-                }
+            } catch (e: CancellationException) {
+                Log.d(
+                    "ConversionViewModel",
+                    " a cancellation exception occured . getSymbols: ${e.message}"
+                )
             } catch (e: Exception) {
-                _conversionScreenState.update {
-                    it.copy(
-                        conversionAmount = "0.0",
-                        error = "An unexpected error occurred"
-                    )
-                }
+                Log.d("ConversionViewModel", " an exception occured . getSymbols: ${e.message}")
             }
         }
     }
 
 
+    fun convert(baseCurrency: String, conversionCurrency: String, baseAmount: String) {
+        viewModelScope.launch {
+
+
+            if (baseCurrency == Default_Base_Currency) {
+                RetrofitInstance.ratesRemoteDataSource.getRates(
+                    baseCurrency,
+                    conversionCurrency
+                ).onSuccess { data ->
+                    Log.d("ConversionViewModel", "successfully fetched conversion rate")
+                    // Get the conversion rate
+                    val rate = data.rates?.get(conversionCurrency)
+                    if (rate == null) {
+                        _conversionScreenState.update {
+                            it.copy(
+                                conversionAmount = "0.0",
+                                error = "Rate not found for $conversionCurrency"
+                            )
+                        }
+                    } else {
+                        Log.d(
+                            "ConversionViewModel",
+                            "converting base to other currency, rate is $rate"
+                        )
+                        // Calculate and update conversion amount
+                        val convertedAmount = baseAmount.toDouble() * rate
+                        _conversionScreenState.update {
+                            it.copy(
+                                conversionAmount = convertedAmount.toString(),
+                                error = null
+                            )
+                        }
+                    }
+                }.onError { err ->
+                    Log.d(
+                        "ConversionViewModel",
+                        "an error occurred while fetching default conversion rate, $err"
+                    )
+                    _conversionScreenState.update {
+                        it.copy(error = "An error occurred while converting")
+                    }
+
+                }
+            } else {
+                //convert the base amount to be in the default currency
+                RetrofitInstance.ratesRemoteDataSource.getRates(
+                    Default_Base_Currency, baseCurrency
+                ).onSuccess { data ->
+                    Log.d("ConversionViewModel", "successfully fetched default conversion/base rate")
+                    //do rates x base currency
+                    val rate = data.rates?.get(baseCurrency)
+                    if (rate == null) {
+                        _conversionScreenState.update {
+                            it.copy(
+                                conversionAmount = "0.0",
+                                error = "Rate not found for $conversionCurrency"
+                            )
+                        }
+                        return@launch
+                    } else {
+
+                        Log.d(
+                            "ConversionViewModel",
+                            " default/ base rate is $rate"
+                        )
+                        val euroAmount = baseAmount.toDouble() / rate
+                        RetrofitInstance.ratesRemoteDataSource.getRates(
+                            Default_Base_Currency, conversionCurrency
+                        ).onSuccess { newData ->
+                            Log.d(
+                                "ConversionViewModel",
+                                "successfully fetched default/conversion rate"
+                            )
+                            //cCRate is the default/conversion currency rate
+                            val cCRate = newData.rates?.get(conversionCurrency)
+                            if (cCRate == null) {
+                                _conversionScreenState.update {
+                                    it.copy(
+                                        conversionAmount = "0.0",
+                                        error = "Rate not found for $conversionCurrency"
+                                    )
+                                }
+                                return@launch
+                            } else {
+
+
+
+                                //fetch the rate for default currency/conversion currency
+                                val convertedAmount = euroAmount * rate
+
+                                _conversionScreenState.update {
+                                    it.copy(
+                                        conversionAmount = convertedAmount.toString(),
+                                        error = null
+                                    )
+                                }
+                            }
+
+
+                        }.onError { err ->
+                            Log.d(
+                                "ConversionViewModel",
+                                "an error occurred while fetching default / conversion rate, $err"
+                            )
+                            _conversionScreenState.update {
+                                it.copy(error = "An error occurred while converting")
+                            }
+                        }
+
+
+                    }.onError { err ->
+                        Log.d(
+                            "ConversionViewModel",
+                            "an error occurred while fetching conversion rate, $err"
+                        )
+                        _conversionScreenState.update {
+                            it.copy(error = "An error occurred while converting")
+                        }
+                    }
+                }.onError {err->
+                    Log.d(
+                        "ConversionViewModel",
+                        "an error occurred while fetching default / base conversion rate, $err"
+                    )
+                    _conversionScreenState.update {
+                        it.copy(error = "An error occurred while converting")
+
+                    }
+
+                }
+
+            }
+        }
+    }
 }
+
+
