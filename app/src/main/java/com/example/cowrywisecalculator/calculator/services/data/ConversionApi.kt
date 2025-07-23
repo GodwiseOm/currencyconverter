@@ -6,6 +6,7 @@ import com.example.cowrywisecalculator.calculator.services.data.model.RatesRespo
 import com.example.cowrywisecalculator.calculator.services.data.model.Symbols
 import com.example.cowrywisecalculator.calculator.domain.DataError
 import com.example.cowrywisecalculator.calculator.domain.Result
+
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -22,6 +23,22 @@ interface ConversionApi {
         @Query("symbols") conversionCurrency: String,
         @Query("access_key") accessKey: String = "17d55189d6a780ac6e2ae02ef61cca98"
     ): Response<RatesResponse>
+
+
+    @GET("{apiKey}/pair/{from}/{to}")
+    suspend fun getExchangeRate(
+        @Path("apiKey") apiKey: String,
+        @Path("from") baseCurrency: String,
+        @Path("to") conversionCurrency: String
+    ): Response<RatesResponse>
+
+    @GET("service/data/EXR/D.{currency}.EUR.SP00.A")
+    suspend fun getECBExchangeRate(
+        @Path("currency") targetCurrency: String,
+        @Query("format") format: String = "jsondata",
+        @Query("lastNObservations") limit: Int = 1
+    ): Response<RatesResponse>
+
 
     @GET("symbols")
     suspend fun getSymbols(@Query("access_key") accessKey: String = "17d55189d6a780ac6e2ae02ef61cca98"): Response<com.example.cowrywisecalculator.calculator.services.data.model.Symbols>

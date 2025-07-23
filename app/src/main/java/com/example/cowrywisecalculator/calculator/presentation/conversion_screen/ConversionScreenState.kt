@@ -14,12 +14,23 @@ data class ConversionScreenState (
     val conversionAmount:String = "",
     val baseImage:String = "https://flagcdn.com/w320/us.png",
     val conversionImage:String = "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Flag_of_Europe.svg/320px-Flag_of_Europe.svg.png",
-    val allCurrency: com.example.cowrywisecalculator.calculator.services.data.model.RatesResponse = com.example.cowrywisecalculator.calculator.services.data.model.RatesResponse(
+    val allCurrency: RatesResponse = RatesResponse(
         null,
         null,
         null,
         null,
-        null
+        null,
+        baseCode = null,
+        conversionRate = null,
+        conversionResult = null,
+        documentation = null,
+        result = null,
+        targetCode = null,
+        termsOfUse = null,
+        timeLastUpdateUnix = null,
+        timeLastUpdateUtc = null,
+        timeNextUpdateUnix = null,
+        timeNextUpdateUtc = null
     ),
     val baseListVisibility:Boolean = false,
     val conversionListVisibility:Boolean = false,

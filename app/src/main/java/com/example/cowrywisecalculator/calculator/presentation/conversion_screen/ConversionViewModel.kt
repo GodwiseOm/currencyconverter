@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cowrywisecalculator.calculator.domain.CalculatorRepository
 import com.example.cowrywisecalculator.core.Default_Base_Currency
-import com.example.cowrywisecalculator.data.RetrofitInstance
+
 import com.example.cowrywisecalculator.calculator.domain.DataError
 import com.example.cowrywisecalculator.calculator.domain.Result
 import com.example.cowrywisecalculator.calculator.domain.onError
@@ -19,10 +19,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
+private const val TAG = "ConversionViewModel"
 @HiltViewModel
 class ConversionViewModel @Inject constructor(
-    calculatorRepository: CalculatorRepository
+   private val  calculatorRepository: CalculatorRepository
 ) : ViewModel() {
 
     init {
@@ -47,6 +47,7 @@ class ConversionViewModel @Inject constructor(
     }
 
     fun setBaseAmount(amount: String) {
+        Log.d(TAG, "setBaseAmount: $amount")
         _conversionScreenState.update { it.copy(baseAmount = amount) }
     }
 
@@ -70,7 +71,7 @@ class ConversionViewModel @Inject constructor(
 
     fun getConversionCurrencyFlag(currency: String) {
         viewModelScope.launch {
-            RetrofitInstance.flagRemoteDataSource.getConversionCurrencyImage(currency)
+            calculatorRepository.getConversionCurrencyImage(currency)
                 .onSuccess { data ->
                     data.firstOrNull()?.flags?.png?.let { imageUrl ->
                         _conversionScreenState.update {
@@ -91,7 +92,7 @@ class ConversionViewModel @Inject constructor(
     fun getBaseCurrencyFlag(currency: String) {
         viewModelScope.launch {
             when (val result =
-                RetrofitInstance.flagRemoteDataSource.getConversionCurrencyImage(currency)) {
+                calculatorRepository.getConversionCurrencyImage(currency)) {
                 is Result.Success -> {
                     result.data.firstOrNull()?.flags?.png?.let { imageUrl ->
                         _conversionScreenState.update {
@@ -113,8 +114,7 @@ class ConversionViewModel @Inject constructor(
 
     fun getSymbols() {
         viewModelScope.launch {
-            try {
-                RetrofitInstance.ratesRemoteDataSource.getSymbols().onSuccess { data ->
+            try { calculatorRepository.getSymbols().onSuccess { data ->
                     data.symbols.keys.toList().let { symbols ->
                         _conversionScreenState.update { it.copy(symbols = symbols, error = null) }
                     }
@@ -158,14 +158,17 @@ class ConversionViewModel @Inject constructor(
 
 
             if (baseCurrency == Default_Base_Currency) {
-                RetrofitInstance.ratesRemoteDataSource.getRates(
+                calculatorRepository.getRates(
                     baseCurrency,
                     conversionCurrency
                 ).onSuccess { data ->
                     Log.d("ConversionViewModel", "successfully fetched conversion rate")
                     // Get the conversion rate
-                    val rate = data.rates?.get(conversionCurrency)
+                    val rate = data.rates?.get(conversionCurrency)?:data.conversionRate
+                    Log.d(TAG, "rate is $rate")
                     if (rate == null) {
+                        Log.d(TAG, "rate is null")
+
                         _conversionScreenState.update {
                             it.copy(
                                 conversionAmount = "0.0",
@@ -198,12 +201,13 @@ class ConversionViewModel @Inject constructor(
                 }
             } else {
                 //convert the base amount to be in the default currency
-                RemoteDataSource.getRates(
+                calculatorRepository.getRates(
                     Default_Base_Currency, baseCurrency
                 ).onSuccess { data ->
                     Log.d("ConversionViewModel", "successfully fetched default conversion/base rate")
                     //do rates x base currency
-                    val rate = data.rates?.get(baseCurrency)
+                    val rate = data.rates?.get(baseCurrency)?:data.conversionRate
+                    Log.d(TAG, "rate = $rate")
                     if (rate == null) {
                         _conversionScreenState.update {
                             it.copy(
@@ -219,7 +223,7 @@ class ConversionViewModel @Inject constructor(
                             " default/ base rate is $rate"
                         )
                         val euroAmount = baseAmount.toDouble() / rate
-                        RetrofitInstance.ratesRemoteDataSource.getRates(
+                       calculatorRepository.getRates(
                             Default_Base_Currency, conversionCurrency
                         ).onSuccess { newData ->
                             Log.d(
@@ -227,8 +231,9 @@ class ConversionViewModel @Inject constructor(
                                 "successfully fetched default/conversion rate"
                             )
                             //cCRate is the default/conversion currency rate
-                            val cCRate = newData.rates?.get(conversionCurrency)
+                            val cCRate = newData.rates?.get(conversionCurrency)?:newData.conversionRate
                             if (cCRate == null) {
+                                Log.d(TAG, "unable to get cCrate")
                                 _conversionScreenState.update {
                                     it.copy(
                                         conversionAmount = "0.0",

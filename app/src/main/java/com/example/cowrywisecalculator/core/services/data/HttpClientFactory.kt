@@ -2,6 +2,7 @@ package com.example.cowrywisecalculator.core.services.data
 
 import android.util.Log
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -9,11 +10,13 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
+
 // 1. API Service Provider Enum
 enum class ApiProvider(val baseUrl:String){
     FIXER("https://data.fixer.io/api/"),
     EXCHANGE_RATE_API("https://v6.exchangerate-api.com/v6/"),
-    ECB("https://api.exchangerate.host/"),
+    ECB("https://data-api.ecb.europa.eu/"),
     REST_COUNTRIES("https://restcountries.com/v3.1/"),
     CUSTOM("")
 }
@@ -33,7 +36,7 @@ data class NetworkConfig(
 
 
 // 3. Retrofit Wrapper Class
-class RetrofitWrapper private constructor() {
+class RetrofitWrapper  @Inject constructor() {
 
     companion object {
         @Volatile

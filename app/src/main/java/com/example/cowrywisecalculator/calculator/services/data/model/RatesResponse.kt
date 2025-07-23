@@ -5,29 +5,41 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RatesResponse(
-    val base: String?,
-    val date: String?,
+    val base: String? = null,
+    val date: String? = null,
     val rates: Map<String, Double>? = null,
-    val success: Boolean?,
-    val timestamp: Int?,
+    val success: Boolean? = null,
+    val timestamp: Int? = null,
     @SerialName("base_code")
-    val baseCode: String?,
+    val baseCode: String? = null,
     @SerialName("conversion_rate")
-    val conversionRate: Double?,
+    val conversionRate: Double? = null,
     @SerialName("conversion_result")
-    val conversionResult: Double?,
-    val documentation: String?,
-    val result: String?,
+    val conversionResult: Double? = null,
+    val documentation: String? = null,
+    val result: String? = null,
     @SerialName("target_code")
-    val targetCode: String?,
+    val targetCode: String? = null,
     @SerialName("terms_of_use")
-    val termsOfUse: String?,
+    val termsOfUse: String? = null,
     @SerialName("time_last_update_unix")
-    val timeLastUpdateUnix: Int?,
+    val timeLastUpdateUnix: Int? = null,
     @SerialName("time_last_update_utc")
-    val timeLastUpdateUtc: String?,
+    val timeLastUpdateUtc: String? = null,
     @SerialName("time_next_update_unix")
-    val timeNextUpdateUnix: Int?,
+    val timeNextUpdateUnix: Int? = null,
     @SerialName("time_next_update_utc")
-    val timeNextUpdateUtc: String?
+    val timeNextUpdateUtc: String? = null,
+    val dataSets:List<DataSet>? = null,
 )
+
+
+
+
+@Serializable
+data class DataSet(val series:List<Series>)
+
+@Serializable
+data class Series(val seriesData:Map<String,SeriesData>)
+@Serializable
+data class SeriesData (val observations:Map<String, List<Double?>>)
