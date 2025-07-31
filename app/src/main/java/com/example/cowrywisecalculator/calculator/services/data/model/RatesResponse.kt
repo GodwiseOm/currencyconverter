@@ -37,9 +37,9 @@ data class RatesResponse(
 
 
 @Serializable
-data class DataSet(val series:List<Series>)
+data class DataSet( val series: Map<String, SeriesData>)
 
 @Serializable
-data class Series(val seriesData:Map<String,SeriesData>)
-@Serializable
-data class SeriesData (val observations:Map<String, List<Double?>>)
+data class SeriesData(
+    val observations: Map<String, List<Double?>>
+)

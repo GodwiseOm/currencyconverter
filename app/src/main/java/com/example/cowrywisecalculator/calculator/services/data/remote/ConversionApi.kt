@@ -1,11 +1,9 @@
-package com.example.cowrywisecalculator.calculator.services.data
+package com.example.cowrywisecalculator.calculator.services.data.remote
 
 import com.example.cowrywisecalculator.calculator.services.data.model.FlagResponse
-import com.example.cowrywisecalculator.calculator.services.data.model.FlagResponseItem
 import com.example.cowrywisecalculator.calculator.services.data.model.RatesResponse
 import com.example.cowrywisecalculator.calculator.services.data.model.Symbols
-import com.example.cowrywisecalculator.calculator.domain.DataError
-import com.example.cowrywisecalculator.calculator.domain.Result
+import com.example.cowrywisecalculator.calculator.services.data.model.SymbolsResponse
 
 import retrofit2.Response
 import retrofit2.http.GET
@@ -41,7 +39,7 @@ interface ConversionApi {
 
 
     @GET("symbols")
-    suspend fun getSymbols(@Query("access_key") accessKey: String = "17d55189d6a780ac6e2ae02ef61cca98"): Response<com.example.cowrywisecalculator.calculator.services.data.model.Symbols>
+    suspend fun getSymbols(@Query("access_key") accessKey: String = "17d55189d6a780ac6e2ae02ef61cca98"): Response<SymbolsResponse>
 
 
     @GET
@@ -51,7 +49,7 @@ interface ConversionApi {
     suspend fun getConversionCurrencyName(): String
 
     @GET("{currency}")
-    suspend fun getConversionCurrencyImage(@Path("currency") currency: String): Response<List<FlagResponseItem>>
+    suspend fun getConversionCurrencyImage(@Path("currency") currency: String): Response<List<FlagResponse>>
 
     suspend fun getConversionRate() {}
 

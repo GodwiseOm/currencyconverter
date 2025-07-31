@@ -17,7 +17,7 @@ enum class ApiProvider(val baseUrl:String){
     FIXER("https://data.fixer.io/api/"),
     EXCHANGE_RATE_API("https://v6.exchangerate-api.com/v6/"),
     ECB("https://data-api.ecb.europa.eu/"),
-    REST_COUNTRIES("https://restcountries.com/v3.1/"),
+    REST_COUNTRIES("https://restcountries.com/v3.1/currency/"),
     CUSTOM("")
 }
 

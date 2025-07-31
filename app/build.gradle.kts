@@ -66,6 +66,8 @@ dependencies {
     implementation(libs.hilt.android)
     kapt(libs.kapt.hilt.android.compiler)
     ksp(libs.room.compiler)
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
     implementation(libs.retrofit)
     implementation(libs.kotlin.serialization)
     implementation(libs.kotlin.serialization.converter)

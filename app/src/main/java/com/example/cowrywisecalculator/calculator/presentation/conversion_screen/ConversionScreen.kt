@@ -1,10 +1,16 @@
 package com.example.cowrywisecalculator.calculator.presentation.conversion_screen
 
+import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,22 +40,30 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
 
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -60,6 +74,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -73,20 +88,28 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.cowrywisecalculator.calculator.presentation.theme.CowrywiseCalculatorTheme
 import com.example.cowrywisecalculator.R
-import com.example.cowrywisecalculator.calculator.services.data.model.Rates
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.focus.focusTarget
+
+
+private const val TAG = "ConversionScreen"
 
 @Composable
 fun ConversionScreenRoot(
-    modifier:Modifier = Modifier,
-    viewModel: ConversionViewModel = hiltViewModel()
+    modifier: Modifier = Modifier, viewModel: ConversionViewModel = hiltViewModel()
 ) {
     val state = viewModel.conversionScreenState.collectAsStateWithLifecycle()
-    ConversionScreen(
-        onBaseCurrencyChanged = { viewModel.setBaseCurrency(it)
-                                viewModel.getBaseCurrencyFlag(it)},
-        onConversionCurrencyChanged = { viewModel.setConversionCurrency(it)
-                                      viewModel.getConversionCurrencyFlag(it)},
-        onBaseAmountChanged ={ viewModel.setBaseAmount(it)},
+
+    ConversionScreen(onBaseCurrencyChanged = {
+        viewModel.setBaseCurrency(it)
+        viewModel.getFlag(it, false)
+    },
+        onConversionCurrencyChanged = {
+            viewModel.setConversionCurrency(it)
+            viewModel.getFlag(it, true)
+        },
+        onBaseAmountChanged = { viewModel.setBaseAmount(it) },
         modifier = modifier.fillMaxSize(),
         state = state.value,
         onButtonClick = {
@@ -112,7 +135,9 @@ fun ConversionScreen(
 
     ) {
 
-    val conversionError = state.error
+    var showCurrencyDropDown by remember { mutableStateOf(true) }
+    val textFieldFocusRequester = remember { FocusRequester() }
+
     Column(
         modifier = modifier
             .padding(horizontal = 16.dp)
@@ -131,7 +156,30 @@ fun ConversionScreen(
                 modifier = Modifier.size(32.dp)
             )
             Spacer(modifier = Modifier.weight(1f))
-            Text(text = "Sign up", color = MaterialTheme.colorScheme.primary, fontSize = 24.sp)
+            Column {
+                var showAccountPrompt by remember { mutableStateOf(false) }
+
+                Text(text = "Sign up",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 24.sp,
+                    modifier = Modifier.clickable { showAccountPrompt = true}  .focusable()
+                        .focusTarget()
+                        .focusRequester(textFieldFocusRequester)
+                        .onFocusChanged {
+                            if (it.isFocused) {
+                                Log.d(TAG, "onFocusChanged: card responds to focus ")
+                                showCurrencyDropDown = false
+                            }
+                            if (!it.isFocused) {
+                                showCurrencyDropDown = true
+                            }
+                        })
+                if (showAccountPrompt) {
+                    UnavailabilityText(text = "You don't need to sign up",
+                        exit = { showAccountPrompt = false })
+                }
+            }
+
         }
         Column {
 
@@ -156,14 +204,27 @@ fun ConversionScreen(
             ConversionAmountTab(
                 amount = state.baseAmount,
                 readOnly = false,
-                onValueChange = {onBaseAmountChanged(it)},
+                onValueChange = { onBaseAmountChanged(it) },
                 currency = state.baseCurrency,
-                modifier = Modifier.padding(bottom = 20.dp),
+                modifier = Modifier
+                    .padding(bottom = 20.dp)
+                    .focusable()
+                    .focusTarget()
+                    .focusRequester(textFieldFocusRequester)
+                    .onFocusChanged {
+                        if (it.isFocused) {
+                            Log.d(TAG, "onFocusChanged: card responds to focus ")
+                            showCurrencyDropDown = false
+                        }
+                        if (!it.isFocused) {
+                            showCurrencyDropDown = true
+                        }
+                    },
 
-            )
+                )
             ConversionAmountTab(
                 readOnly = true,
-amount = state.conversionAmount,
+                amount = state.conversionAmount,
                 currency = state.conversionCurrency,
                 modifier = Modifier.padding(bottom = 40.dp)
             )
@@ -171,15 +232,17 @@ amount = state.conversionAmount,
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp), horizontalArrangement =
-                Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
+                    .padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 CurrencyTypeTab(
                     symbol = state.baseCurrency,
                     modifier = Modifier.fillMaxWidth(0.4f),
                     imageurl = state.baseImage,
                     symbols = state.symbols,
-                    onsymbolClicked = { onBaseCurrencyChanged(it) }
+                    onsymbolClicked = { onBaseCurrencyChanged(it) },
+                    externalControl = showCurrencyDropDown
 
 
                 )
@@ -195,7 +258,8 @@ amount = state.conversionAmount,
                     modifier = Modifier.fillMaxWidth(0.66666f),
                     imageurl = state.conversionImage,
                     symbols = state.symbols,
-                    onsymbolClicked = { onConversionCurrencyChanged(it) }
+                    onsymbolClicked = { onConversionCurrencyChanged(it) },
+                    externalControl = showCurrencyDropDown
 
                 )
             }
@@ -217,8 +281,7 @@ amount = state.conversionAmount,
                 Card(modifier = Modifier.size(20.dp), shape = RoundedCornerShape(100)) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         Text(
-                            "!",
-                            modifier = Modifier.align(Alignment.Center)
+                            "!", modifier = Modifier.align(Alignment.Center)
                         )
                     }
                 }
@@ -233,7 +296,7 @@ amount = state.conversionAmount,
 fun ConversionAmountTab(
     readOnly: Boolean,
     modifier: Modifier = Modifier,
-onValueChange: (String) -> Unit = {},
+    onValueChange: (String) -> Unit = {},
     currency: String = "Usd",
     amount: String = ""
 
@@ -251,16 +314,27 @@ onValueChange: (String) -> Unit = {},
         ) {
 
             TextField(
-                placeholder = { Text(text="0.0",color = MaterialTheme.colorScheme.outline) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done
+                placeholder = { Text(text = "0.0", color = MaterialTheme.colorScheme.outline) },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number, imeAction = ImeAction.Done
                 ),
                 value = amount,
                 readOnly = readOnly,
                 onValueChange = {
-                                 onValueChange(it)},
-                modifier = Modifier.background(color = Color.Transparent),
+                    onValueChange(it)
+                },
+                modifier = Modifier
+                    .background(color = Color.Transparent)
+                    .onFocusChanged {
+                        if (it.isFocused) {
+                            Log.d(TAG, "onFocusChanged: text field has focus ")
+                        } else {
+                            Log.d(TAG, "onFocusChanged: text field has no focus ")
+                        }
+                    },
                 colors = TextFieldDefaults.colors(
-
+                    focusedTextColor = colorScheme.onSurface,
+                    unfocusedTextColor = colorScheme.onSurface,
                     focusedContainerColor = Color.Transparent,
                     disabledContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
@@ -286,16 +360,22 @@ fun CurrencyTypeTab(
     imageurl: String,
     symbols: List<String>,
     onsymbolClicked: (String) -> Unit = {},
-    listVisibility: Boolean = false,
+    externalControl: Boolean,
 
     ) {
-    var showSymbols by rememberSaveable { mutableStateOf(false) }
+
+    var internalDropdownControl by rememberSaveable { mutableStateOf(false) }
+
+    val showSymbols by remember(externalControl, internalDropdownControl) {
+        derivedStateOf { externalControl && internalDropdownControl }
+    }
+
+
     var rotation by rememberSaveable { mutableFloatStateOf(0f) }
     val animatedRotation = animateFloatAsState(targetValue = rotation)
+
     ExposedDropdownMenuBox(
-        modifier = modifier,
-        onExpandedChange = {  },
-        expanded = showSymbols
+        modifier = modifier, onExpandedChange = { }, expanded = showSymbols
     ) {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -303,9 +383,7 @@ fun CurrencyTypeTab(
                 .fillMaxWidth()
                 .menuAnchor()
                 .border(
-                    width = 1.dp,
-                    color = Color.Gray,
-                    shape = RoundedCornerShape(16)
+                    width = 1.dp, color = Color.Gray, shape = RoundedCornerShape(16)
                 )
                 .padding(8.dp)
         ) {
@@ -316,55 +394,108 @@ fun CurrencyTypeTab(
                 modifier = Modifier
                     .clip(CircleShape)
                     .size(24.dp)
-                    .background(Color.Red), contentScale = ContentScale.Crop
-                  ,
+                    .background(colorScheme.background),
+                contentScale = ContentScale.Crop,
                 placeholder = painterResource(R.drawable.baseline_downloading_24),
                 error = painterResource(R.drawable.baseline_error_outline_24)
             )
             Text(text = symbol)
-            Image(
-                painter = painterResource(id = R.drawable.baseline_navigate_next_24),
+            Image(painter = painterResource(id = R.drawable.baseline_navigate_next_24),
                 contentDescription = null,
                 modifier = Modifier
                     .size(24.dp)
+                    .focusable()
                     .clickable {
-                        showSymbols = !showSymbols
-                        if (rotation == 0f) {
-                            rotation = 90f
+                        rotation = if (rotation == 0f) {
+                            90f
                         } else {
-                            rotation = 0f
+                            0f
                         }
+                        internalDropdownControl = !internalDropdownControl
 
                     }
-                    .rotate(animatedRotation.value)
-            )
+                    .rotate(animatedRotation.value))
 
         }
-        ExposedDropdownMenu (
-            modifier = Modifier
-                .heightIn(max = 200.dp),
+
+        ExposedDropdownMenu(modifier = Modifier.heightIn(max = 200.dp),
             expanded = showSymbols,
             onDismissRequest = { }) {
             symbols.forEach {
-                DropdownMenuItem(
-                    text = { Text(text = it, modifier = Modifier.fillMaxWidth()) },
+                DropdownMenuItem(text = { Text(text = it, modifier = Modifier.fillMaxWidth()) },
                     onClick = {
                         onsymbolClicked(it)
-                        showSymbols = false
+                        internalDropdownControl = false
                     })
 
             }
         }
     }
+
+
 }
 
 
+@Composable
+fun UnavailabilityText(
+    modifier: Modifier = Modifier,
+    text: String,
+    exit: () -> Unit,
+
+
+    ) {
+    var vanishText by rememberSaveable { mutableStateOf(false) }
+    var animate by remember { mutableStateOf(false) }
+
+
+    // Animation for the "not available" text
+    val animatedScale by animateFloatAsState(
+
+        targetValue = if (animate) 1.5f else 1f, animationSpec = tween(
+            durationMillis = 1000, easing = FastOutSlowInEasing
+        ), finishedListener = {
+            Log.d(TAG, "finished listener called")
+
+            // Auto-hide after showing
+            vanishText = true
+
+        })
+
+    val animatedAlpha by animateFloatAsState(targetValue = if (vanishText) 0f else 1f,
+        animationSpec = tween(
+            durationMillis = 500, easing = LinearEasing
+        ),
+        finishedListener = { exit() })
+
+    LaunchedEffect(Unit) {
+        animate = true
+    }
+
+    // Main clickable content
+    Text(
+        modifier = modifier
+            .width(80.dp)
+
+            .graphicsLayer {
+                Log.d(TAG, "animated scale is $animatedScale")
+                scaleX = animatedScale
+                scaleY = animatedScale
+                alpha = if (vanishText) animatedAlpha else 1f
+            },
+        text = text,
+        color = colorScheme.secondary,
+        textAlign = TextAlign.Center,
+        lineHeight = 16.sp
+    )
+
+
+}
 
 
 @Preview
 @Composable
 fun ConversionScreenPreview() {
-    CowrywiseCalculatorTheme(darkTheme = false, dynamicColor = false) {
-        ConversionScreenRoot()
+    CowrywiseCalculatorTheme(darkTheme = true, dynamicColor = false) {
+        ConversionScreen(state = ConversionScreenState())
     }
 }

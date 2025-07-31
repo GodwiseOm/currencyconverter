@@ -10,7 +10,7 @@ data class ConversionScreenState (
     val conversionButtonClicked:()->Unit = {},
     val baseCurrency:String = "USD",
     val baseAmount:String = "",
-    val conversionCurrency:String = "NGN",
+    val conversionCurrency:String = "EUR",
     val conversionAmount:String = "",
     val baseImage:String = "https://flagcdn.com/w320/us.png",
     val conversionImage:String = "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Flag_of_Europe.svg/320px-Flag_of_Europe.svg.png",

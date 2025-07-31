@@ -4,26 +4,27 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cowrywisecalculator.calculator.domain.CalculatorRepository
-import com.example.cowrywisecalculator.core.Default_Base_Currency
 
 import com.example.cowrywisecalculator.calculator.domain.DataError
-import com.example.cowrywisecalculator.calculator.domain.Result
 import com.example.cowrywisecalculator.calculator.domain.onError
 import com.example.cowrywisecalculator.calculator.domain.onSuccess
-import com.example.cowrywisecalculator.calculator.services.data.RemoteDataSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
 private const val TAG = "ConversionViewModel"
+
 @HiltViewModel
 class ConversionViewModel @Inject constructor(
-   private val  calculatorRepository: CalculatorRepository
+    private val calculatorRepository: CalculatorRepository
 ) : ViewModel() {
+    var convertJob: Job? = null
 
     init {
         getSymbols()
@@ -69,16 +70,21 @@ class ConversionViewModel @Inject constructor(
         _conversionScreenState.update { it.copy(conversionCurrency = currency, error = null) }
     }
 
-    fun getConversionCurrencyFlag(currency: String) {
+    fun getFlag(currency: String, conversionImage: Boolean) {
         viewModelScope.launch {
             calculatorRepository.getConversionCurrencyImage(currency)
                 .onSuccess { data ->
                     data.firstOrNull()?.flags?.png?.let { imageUrl ->
                         _conversionScreenState.update {
-                            it.copy(
-                                conversionImage = imageUrl,
-                                error = null
-                            )
+                            if (conversionImage) {
+                                it.copy(
+                                    conversionImage = imageUrl,
+                                    error = null
+                                )
+                            } else {
+                                it.copy(baseImage = imageUrl, error = null)
+
+                            }
                         }
                     }
 
@@ -89,36 +95,17 @@ class ConversionViewModel @Inject constructor(
         }
     }
 
-    fun getBaseCurrencyFlag(currency: String) {
+
+    private fun getSymbols() {
         viewModelScope.launch {
-            when (val result =
-                calculatorRepository.getConversionCurrencyImage(currency)) {
-                is Result.Success -> {
-                    result.data.firstOrNull()?.flags?.png?.let { imageUrl ->
-                        _conversionScreenState.update {
-                            it.copy(
-                                baseImage = imageUrl,
-                                error = null
-                            )
-                        }
-                    }
-                }
-
-                is Result.Error -> {
-                    // Handle error if needed
-                }
-            }
-        }
-    }
-
-
-    fun getSymbols() {
-        viewModelScope.launch {
-            try { calculatorRepository.getSymbols().onSuccess { data ->
-                    data.symbols.keys.toList().let { symbols ->
+            try {
+                calculatorRepository.getSymbols().onSuccess { data ->
+                    data.symbols.let { symbols ->
+                        Log.d(TAG, "successfully fetched symbols")
                         _conversionScreenState.update { it.copy(symbols = symbols, error = null) }
                     }
                 }.onError { err ->
+                    Log.d(TAG,"failed to get symbols. error is $err")
 
                     val errorMessage = when (err) {
                         is DataError.Remote -> {
@@ -154,142 +141,55 @@ class ConversionViewModel @Inject constructor(
 
 
     fun convert(baseCurrency: String, conversionCurrency: String, baseAmount: String) {
-        viewModelScope.launch {
+        convertJob?.cancel()
+        convertJob = viewModelScope.launch {
 
+            calculatorRepository.getRates(
+                baseCurrency,
+                conversionCurrency
+            ).onSuccess { data ->
+                Log.d("ConversionViewModel", "successfully fetched conversion rate")
+                // Get the conversion rate
+                val rate = data.rates?.get(conversionCurrency)
+                    ?: data.dataSets?.firstOrNull()?.series?.values?.firstOrNull()?.observations?.values?.firstOrNull()
+                        ?.firstOrNull() ?: data.conversionRate
 
-            if (baseCurrency == Default_Base_Currency) {
-                calculatorRepository.getRates(
-                    baseCurrency,
-                    conversionCurrency
-                ).onSuccess { data ->
-                    Log.d("ConversionViewModel", "successfully fetched conversion rate")
-                    // Get the conversion rate
-                    val rate = data.rates?.get(conversionCurrency)?:data.conversionRate
-                    Log.d(TAG, "rate is $rate")
-                    if (rate == null) {
-                        Log.d(TAG, "rate is null")
+                Log.d(TAG, "rate is $rate")
+                if (rate == null) {
+                    Log.d(TAG, "rate is null")
 
-                        _conversionScreenState.update {
-                            it.copy(
-                                conversionAmount = "0.0",
-                                error = "Rate not found for $conversionCurrency"
-                            )
-                        }
-                    } else {
-                        Log.d(
-                            "ConversionViewModel",
-                            "converting base to other currency, rate is $rate"
+                    _conversionScreenState.update {
+                        it.copy(
+                            conversionAmount = "0.0",
+                            error = "Rate not found for $conversionCurrency"
                         )
-                        // Calculate and update conversion amount
-                        val convertedAmount = baseAmount.toDouble() * rate
-                        _conversionScreenState.update {
-                            it.copy(
-                                conversionAmount = convertedAmount.toString(),
-                                error = null
-                            )
-                        }
                     }
-                }.onError { err ->
+                } else {
                     Log.d(
                         "ConversionViewModel",
-                        "an error occurred while fetching default conversion rate, $err"
+                        "converting base to other currency, rate is $rate"
                     )
+                    // Calculate and update conversion amount
+                    val convertedAmount = baseAmount.toDouble() * rate
                     _conversionScreenState.update {
-                        it.copy(error = "An error occurred while converting")
+                        Log.d(TAG, "conversion screen updated: $convertedAmount")
+                        it.copy(
+                            conversionAmount = convertedAmount.toString(),
+                            error = null
+                        )
                     }
-
                 }
-            } else {
-                //convert the base amount to be in the default currency
-                calculatorRepository.getRates(
-                    Default_Base_Currency, baseCurrency
-                ).onSuccess { data ->
-                    Log.d("ConversionViewModel", "successfully fetched default conversion/base rate")
-                    //do rates x base currency
-                    val rate = data.rates?.get(baseCurrency)?:data.conversionRate
-                    Log.d(TAG, "rate = $rate")
-                    if (rate == null) {
-                        _conversionScreenState.update {
-                            it.copy(
-                                conversionAmount = "0.0",
-                                error = "Rate not found for $conversionCurrency"
-                            )
-                        }
-                        return@launch
-                    } else {
-
-                        Log.d(
-                            "ConversionViewModel",
-                            " default/ base rate is $rate"
-                        )
-                        val euroAmount = baseAmount.toDouble() / rate
-                       calculatorRepository.getRates(
-                            Default_Base_Currency, conversionCurrency
-                        ).onSuccess { newData ->
-                            Log.d(
-                                "ConversionViewModel",
-                                "successfully fetched default/conversion rate"
-                            )
-                            //cCRate is the default/conversion currency rate
-                            val cCRate = newData.rates?.get(conversionCurrency)?:newData.conversionRate
-                            if (cCRate == null) {
-                                Log.d(TAG, "unable to get cCrate")
-                                _conversionScreenState.update {
-                                    it.copy(
-                                        conversionAmount = "0.0",
-                                        error = "Rate not found for $conversionCurrency"
-                                    )
-                                }
-                                return@launch
-                            } else {
-
-
-
-                                //fetch the rate for default currency/conversion currency
-                                val convertedAmount = euroAmount * rate
-
-                                _conversionScreenState.update {
-                                    it.copy(
-                                        conversionAmount = convertedAmount.toString(),
-                                        error = null
-                                    )
-                                }
-                            }
-
-
-                        }.onError { err ->
-                            Log.d(
-                                "ConversionViewModel",
-                                "an error occurred while fetching default / conversion rate, $err"
-                            )
-                            _conversionScreenState.update {
-                                it.copy(error = "An error occurred while converting")
-                            }
-                        }
-
-
-                    }.onError { err ->
-                        Log.d(
-                            "ConversionViewModel",
-                            "an error occurred while fetching conversion rate, $err"
-                        )
-                        _conversionScreenState.update {
-                            it.copy(error = "An error occurred while converting")
-                        }
-                    }
-                }.onError {err->
-                    Log.d(
-                        "ConversionViewModel",
-                        "an error occurred while fetching default / base conversion rate, $err"
-                    )
-                    _conversionScreenState.update {
-                        it.copy(error = "An error occurred while converting")
-
-                    }
-
+            }.onError { err ->
+                Log.d(
+                    "ConversionViewModel",
+                    "an error occurred while fetching default conversion rate, $err"
+                )
+                _conversionScreenState.update {
+                    it.copy(error = "An error occurred while converting")
                 }
 
             }
+
         }
     }
 }
