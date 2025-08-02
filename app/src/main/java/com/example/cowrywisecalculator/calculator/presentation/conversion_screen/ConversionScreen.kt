@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +32,7 @@ import androidx.compose.foundation.shape.CircleShape
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -91,6 +93,10 @@ import com.example.cowrywisecalculator.R
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.focus.focusTarget
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.unit.Dp
+import com.example.cowrywisecalculator.calculator.presentation.Components.AnimatedDots
+import kotlinx.coroutines.delay
 
 
 private const val TAG = "ConversionScreen"
@@ -137,6 +143,8 @@ fun ConversionScreen(
 
     var showCurrencyDropDown by remember { mutableStateOf(true) }
     val textFieldFocusRequester = remember { FocusRequester() }
+    val dropDownInteractionSource  = remember { MutableInteractionSource() }
+
 
     Column(
         modifier = modifier
@@ -162,18 +170,10 @@ fun ConversionScreen(
                 Text(text = "Sign up",
                     color = MaterialTheme.colorScheme.primary,
                     fontSize = 24.sp,
-                    modifier = Modifier.clickable { showAccountPrompt = true}  .focusable()
-                        .focusTarget()
-                        .focusRequester(textFieldFocusRequester)
-                        .onFocusChanged {
-                            if (it.isFocused) {
-                                Log.d(TAG, "onFocusChanged: card responds to focus ")
-                                showCurrencyDropDown = false
-                            }
-                            if (!it.isFocused) {
-                                showCurrencyDropDown = true
-                            }
-                        })
+                    modifier = Modifier
+                        .clickable { showAccountPrompt = true }
+
+                        )
                 if (showAccountPrompt) {
                     UnavailabilityText(text = "You don't need to sign up",
                         exit = { showAccountPrompt = false })
@@ -208,18 +208,6 @@ fun ConversionScreen(
                 currency = state.baseCurrency,
                 modifier = Modifier
                     .padding(bottom = 20.dp)
-                    .focusable()
-                    .focusTarget()
-                    .focusRequester(textFieldFocusRequester)
-                    .onFocusChanged {
-                        if (it.isFocused) {
-                            Log.d(TAG, "onFocusChanged: card responds to focus ")
-                            showCurrencyDropDown = false
-                        }
-                        if (!it.isFocused) {
-                            showCurrencyDropDown = true
-                        }
-                    },
 
                 )
             ConversionAmountTab(
@@ -237,12 +225,26 @@ fun ConversionScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 CurrencyTypeTab(
+                    clickerIconModifier = Modifier
+                        .focusable(interactionSource = dropDownInteractionSource)
+                        .focusRequester(textFieldFocusRequester)
+                        .onFocusChanged {
+                            if (it.isFocused) {
+                                Log.d(TAG, "onFocusChanged: card responds to focus ")
+                                showCurrencyDropDown = true
+                            }
+                            if (!it.isFocused) {
+                                Log.d(TAG, "onFocusChanged: card loses focus ")
+                                showCurrencyDropDown = false
+                            }
+                        },
+                    dropDownFocusRequester = textFieldFocusRequester,
                     symbol = state.baseCurrency,
                     modifier = Modifier.fillMaxWidth(0.4f),
                     imageurl = state.baseImage,
                     symbols = state.symbols,
                     onsymbolClicked = { onBaseCurrencyChanged(it) },
-                    externalControl = showCurrencyDropDown
+                    externalControl = showCurrencyDropDown, dropDownInteractionSource = dropDownInteractionSource
 
 
                 )
@@ -259,17 +261,24 @@ fun ConversionScreen(
                     imageurl = state.conversionImage,
                     symbols = state.symbols,
                     onsymbolClicked = { onConversionCurrencyChanged(it) },
-                    externalControl = showCurrencyDropDown
+                    externalControl = showCurrencyDropDown,
+                    dropDownFocusRequester = textFieldFocusRequester,
+                    clickerIconModifier = Modifier
 
                 )
             }
-            Button(
-                onClick = onButtonClick,
-                shape = RoundedCornerShape(10),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Convert")
+            Box() {
+                Button(
+                    onClick = onButtonClick,
+                    shape = RoundedCornerShape(10),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(text = "Convert")
+                }
+                if(state.showLoading){
+                    AnimatedDots(modifier = Modifier.align(Alignment.Center))
+                }
             }
             Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
                 Text(
@@ -356,8 +365,11 @@ fun ConversionAmountTab(
 @Composable
 fun CurrencyTypeTab(
     modifier: Modifier = Modifier,
+    clickerIconModifier: Modifier,
     symbol: String,
     imageurl: String,
+    dropDownFocusRequester: FocusRequester ,
+    dropDownInteractionSource: MutableInteractionSource = MutableInteractionSource(),
     symbols: List<String>,
     onsymbolClicked: (String) -> Unit = {},
     externalControl: Boolean,
@@ -368,11 +380,15 @@ fun CurrencyTypeTab(
 
     val showSymbols by remember(externalControl, internalDropdownControl) {
         derivedStateOf { externalControl && internalDropdownControl }
+        
     }
+
 
 
     var rotation by rememberSaveable { mutableFloatStateOf(0f) }
     val animatedRotation = animateFloatAsState(targetValue = rotation)
+   val focusManager =  LocalFocusManager.current
+    var shouldRequestFocus by remember { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(
         modifier = modifier, onExpandedChange = { }, expanded = showSymbols
@@ -400,15 +416,22 @@ fun CurrencyTypeTab(
                 error = painterResource(R.drawable.baseline_error_outline_24)
             )
             Text(text = symbol)
-            Image(painter = painterResource(id = R.drawable.baseline_navigate_next_24),
+            Image(
+                painter = painterResource(id = R.drawable.baseline_navigate_next_24),
                 contentDescription = null,
-                modifier = Modifier
+                modifier = clickerIconModifier
                     .size(24.dp)
-                    .focusable()
-                    .clickable {
+                    .clickable(
+                        interactionSource = dropDownInteractionSource,
+                        indication = rememberRipple()
+
+                    ) {
+
                         rotation = if (rotation == 0f) {
+                          shouldRequestFocus = true
                             90f
                         } else {
+                            dropDownFocusRequester.freeFocus()
                             0f
                         }
                         internalDropdownControl = !internalDropdownControl
@@ -416,6 +439,17 @@ fun CurrencyTypeTab(
                     }
                     .rotate(animatedRotation.value))
 
+        }
+
+        LaunchedEffect(shouldRequestFocus) {
+            if (shouldRequestFocus) {
+                Log.d(TAG, "CurrencyTypeTab: requesting focus")
+                focusManager.clearFocus(true)
+                delay(100) // Give time for clearFocus to complete
+                val request = dropDownFocusRequester.requestFocus()
+                Log.d(TAG, "CurrencyTypeTab: focus requested, answer is $request")
+                shouldRequestFocus = false
+            }
         }
 
         ExposedDropdownMenu(modifier = Modifier.heightIn(max = 200.dp),
@@ -483,13 +517,16 @@ fun UnavailabilityText(
                 alpha = if (vanishText) animatedAlpha else 1f
             },
         text = text,
-        color = colorScheme.secondary,
+        color = colorScheme.tertiary,
         textAlign = TextAlign.Center,
         lineHeight = 16.sp
     )
 
 
 }
+
+
+
 
 
 @Preview

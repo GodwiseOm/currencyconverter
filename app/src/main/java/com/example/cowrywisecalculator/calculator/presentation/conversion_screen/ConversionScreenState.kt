@@ -1,10 +1,12 @@
 package com.example.cowrywisecalculator.calculator.presentation.conversion_screen
 
 import com.example.cowrywisecalculator.calculator.services.data.model.RatesResponse
+import kotlinx.coroutines.flow.StateFlow
 
 
 data class ConversionScreenState (
     val currencyList:Map<String,Double> = emptyMap(),
+    val showLoading:Boolean = false,
 
     val symbols:List<String> = emptyList(),
     val conversionButtonClicked:()->Unit = {},
