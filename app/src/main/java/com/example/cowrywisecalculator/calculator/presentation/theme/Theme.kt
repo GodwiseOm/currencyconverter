@@ -1,4 +1,4 @@
-package com.example.cowrywisecalculator.presentation.theme
+package com.example.cowrywisecalculator.calculator.presentation.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme

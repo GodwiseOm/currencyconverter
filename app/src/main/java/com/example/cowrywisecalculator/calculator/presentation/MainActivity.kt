@@ -1,4 +1,4 @@
-package com.example.cowrywisecalculator.presentation
+package com.example.cowrywisecalculator.calculator.presentation
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -11,10 +11,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.cowrywisecalculator.presentation.conversion_screen.ConversionScreen
-import com.example.cowrywisecalculator.presentation.conversion_screen.ConversionScreenRoot
-import com.example.cowrywisecalculator.presentation.conversion_screen.ConversionScreenState
-import com.example.cowrywisecalculator.presentation.theme.CowrywiseCalculatorTheme
+import com.example.cowrywisecalculator.calculator.presentation.conversion_screen.ConversionScreen
+import com.example.cowrywisecalculator.calculator.presentation.conversion_screen.ConversionScreenRoot
+import com.example.cowrywisecalculator.calculator.presentation.conversion_screen.ConversionScreenState
+import com.example.cowrywisecalculator.calculator.presentation.theme.CowrywiseCalculatorTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
