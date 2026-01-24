@@ -8,3 +8,7 @@ alongside resilient data providers like Fixer.io, Open Exchange Rates.
 
 The app combines these multiple data sources , with timed local caching to ensure all round free and current currency data. Whether you’re a traveler, trader, or business professional, you can depend on consistent, up-to-date values for over 170 world currencies. The app is engineered with a clean, intuitive interface built along mobile development best practices.
 
+
+![Screenshot](cowrywise.jpg)
+![Screenshot](cowrywise2.jpg)
+
