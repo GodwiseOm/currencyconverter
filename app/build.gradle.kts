@@ -10,11 +10,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.cowrywisecalculator"
+    namespace = "com.example.flash_currency_converter"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.cowrywisecalculator"
+        applicationId = "com.example.flash_currency_converter"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
@@ -42,7 +42,7 @@ android {
     buildFeatures {
         compose = true
     }
-    buildToolsVersion = "34.0.0"
+    buildToolsVersion = "36.0.0"
 }
 
 dependencies {
@@ -56,6 +56,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.security.crypto)
+    implementation(libs.androidx.adaptive)
+    implementation(libs.androidx.animation.graphics)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -78,6 +80,7 @@ dependencies {
     implementation(libs.logging.interceptor)
     implementation(libs.preference.datastore)
     implementation(libs.security.crypto)
+    implementation(libs.androidx.core.splashscreen)
 
 }
 
